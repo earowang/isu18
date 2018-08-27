@@ -1,8 +1,8 @@
 ---
-title: "Tidy your time series analysis with tsibble"
+title: "Tidy your time series analysis <br> with tsibble"
 type: "seminar"
 author: "Earo Wang"
-date: "31 August, 2018 <br> slides at <http://slides.earo.me/isu18>"
+date: "31 August 2018 <br> slides at <http://slides.earo.me/isu18>"
 output:
   xaringan::moon_reader:
     css: ["default", "remark.css"]
@@ -20,16 +20,75 @@ options(htmltools.dir.version = FALSE, tibble.width = 60, tibble.print_min = 6)
 opts_chunk$set(
   echo = FALSE, warning = FALSE, message = FALSE, comment = "#>",
   fig.path = 'figure/', cache.path = 'cache/', fig.align = 'center', 
-  fig.width = 12, fig.show = 'hold',
-  fig.height = 8.5, # 16:9
-  # fig.height = 11, # 4:3
+  fig.width = 12, fig.show = 'hold', fig.height = 8.5,
   cache = TRUE, external = TRUE, dev = 'svglite'
 )
 read_chunk('R/theme.R')
+read_chunk('R/code.R')
 ```
 
 ```{r theme-remark}
 ```
+
+```{r load-pkgs}
+```
+
+```{r load-data}
+```
+
+```{r map-airlines, fig.width = 12, fig.height = 8, fig.show = "hide"}
+```
+
+background-image: url(`r fig_chunk("map-airlines", "svg")`)
+background-size: cover
+
+class: bottom center
+
+# US airline traffic in 2017
+
+*data source: [US Bureau of Transportation Statistics](https://www.transtats.bts.gov/DL_SelectFields.asp?Table_ID=236)*
+
+???
+
+wild data
+
+---
+
+.left-column[
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+## A glimpse
+]
+.right-column[
+```{r glimpse, echo = TRUE}
+```
+]
+
+???
+
+the data set is spectacular, fine resolution
+
+---
+
+.pull-left[
+* heterogeneous data types
+* irregular time interval
+]
+.pull-right[
+* multiple measured variables
+* multiple grouping variables
+]
+```{r print}
+```
+
+---
+
+## Roadmap
 
 ---
 

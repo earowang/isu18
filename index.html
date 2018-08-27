@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tidy your time series analysis   with tsibble</title>
+    <meta charset="utf-8">
+    <meta name="author" content="Earo Wang" />
+    <link href="index_files/remark-css/default.css" rel="stylesheet" />
+    <link href="index_files/font-awesome/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="remark.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Tidy your time series analysis <br> with tsibble
+### Earo Wang
+### 31 August 2018 <br> slides at <a href="http://slides.earo.me/isu18" class="uri">http://slides.earo.me/isu18</a>
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+background-image: url(figure/map-airlines-1.svg)
+background-size: cover
+
+class: bottom center
+
+# US airline traffic in 2017
+
+*data source: [US Bureau of Transportation Statistics](https://www.transtats.bts.gov/DL_SelectFields.asp?Table_ID=236)*
+
+???
+
+wild data
+
+---
+
+.left-column[
+&lt;br&gt;
+&lt;br&gt;
+&lt;br&gt;
+&lt;br&gt;
+&lt;br&gt;
+&lt;br&gt;
+&lt;br&gt;
+## A glimpse
+]
+.right-column[
+
+```r
+glimpse(flights)
+```
+
+```
+#&gt; Observations: 5,548,444
+#&gt; Variables: 23
+#&gt; $ flight              &lt;chr&gt; "AA494", "AA494", "AA494", ...
+#&gt; $ sched_dep_datetime  &lt;dttm&gt; 2017-01-17 16:19:00, 2017-...
+#&gt; $ dep_delay           &lt;dbl&gt; -3, -5, -8, 37, 13, 17, -3,...
+#&gt; $ arr_time            &lt;int&gt; 1842, 1821, 1826, 1929, 185...
+#&gt; $ sched_arr_time      &lt;int&gt; 1856, 1856, 1856, 1856, 185...
+#&gt; $ arr_delay           &lt;dbl&gt; -14, -35, -30, 33, 2, 25, 1...
+#&gt; $ carrier             &lt;chr&gt; "AA", "AA", "AA", "AA", "AA...
+#&gt; $ tailnum             &lt;chr&gt; "N583AA", "N544AA", "N553AA...
+#&gt; $ origin              &lt;chr&gt; "CLT", "CLT", "CLT", "CLT",...
+#&gt; $ dest                &lt;chr&gt; "PHX", "PHX", "PHX", "PHX",...
+#&gt; $ air_time            &lt;dbl&gt; 244, 228, 236, 252, 245, 25...
+#&gt; $ distance            &lt;dbl&gt; 1773, 1773, 1773, 1773, 177...
+#&gt; $ origin_city_name    &lt;chr&gt; "Charlotte", "Charlotte", "...
+#&gt; $ origin_state        &lt;chr&gt; "NC", "NC", "NC", "NC", "NC...
+#&gt; $ dest_city_name      &lt;chr&gt; "Phoenix", "Phoenix", "Phoe...
+#&gt; $ dest_state          &lt;chr&gt; "AZ", "AZ", "AZ", "AZ", "AZ...
+#&gt; $ taxi_out            &lt;dbl&gt; 17, 13, 17, 18, 17, 27, 20,...
+#&gt; $ taxi_in             &lt;dbl&gt; 5, 6, 2, 3, 4, 4, 7, 6, 5, ...
+#&gt; $ carrier_delay       &lt;dbl&gt; NA, NA, NA, 33, NA, 0, NA, ...
+#&gt; $ weather_delay       &lt;dbl&gt; NA, NA, NA, 0, NA, 0, NA, N...
+#&gt; $ nas_delay           &lt;dbl&gt; NA, NA, NA, 0, NA, 8, NA, N...
+#&gt; $ security_delay      &lt;dbl&gt; NA, NA, NA, 0, NA, 0, NA, N...
+#&gt; $ late_aircraft_delay &lt;dbl&gt; NA, NA, NA, 0, NA, 17, NA, ...
+```
+]
+
+???
+
+the data set is spectacular, fine resolution
+
+---
+
+.pull-left[
+* heterogeneous data types
+* irregular time interval
+]
+.pull-right[
+* multiple measured variables
+* multiple grouping variables
+]
+
+```
+#&gt; # A tibble: 5,548,444 x 23
+#&gt;   flight sched_dep_datetime  dep_delay arr_time sched_arr_time arr_delay
+#&gt;   &lt;chr&gt;  &lt;dttm&gt;                  &lt;dbl&gt;    &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;
+#&gt; 1 AA494  2017-01-17 16:19:00        -3     1842           1856       -14
+#&gt; 2 AA494  2017-01-18 16:19:00        -5     1821           1856       -35
+#&gt; 3 AA494  2017-01-19 16:19:00        -8     1826           1856       -30
+#&gt; 4 AA494  2017-01-20 16:19:00        37     1929           1856        33
+#&gt; 5 AA494  2017-01-21 16:19:00        13     1858           1856         2
+#&gt; 6 AA494  2017-01-22 16:19:00        17     1921           1856        25
+#&gt;   carrier tailnum origin dest  air_time distance origin_city_name
+#&gt;   &lt;chr&gt;   &lt;chr&gt;   &lt;chr&gt;  &lt;chr&gt;    &lt;dbl&gt;    &lt;dbl&gt; &lt;chr&gt;           
+#&gt; 1 AA      N583AA  CLT    PHX        244     1773 Charlotte       
+#&gt; 2 AA      N544AA  CLT    PHX        228     1773 Charlotte       
+#&gt; 3 AA      N553AA  CLT    PHX        236     1773 Charlotte       
+#&gt; 4 AA      N191AA  CLT    PHX        252     1773 Charlotte       
+#&gt; 5 AA      N170AA  CLT    PHX        245     1773 Charlotte       
+#&gt; 6 AA      N179AA  CLT    PHX        254     1773 Charlotte       
+#&gt; # ... with 5.548e+06 more rows, and 10 more variables: origin_state &lt;chr&gt;,
+#&gt; #   dest_city_name &lt;chr&gt;, dest_state &lt;chr&gt;, taxi_out &lt;dbl&gt;, taxi_in &lt;dbl&gt;,
+#&gt; #   carrier_delay &lt;dbl&gt;, weather_delay &lt;dbl&gt;, nas_delay &lt;dbl&gt;,
+#&gt; #   security_delay &lt;dbl&gt;, late_aircraft_delay &lt;dbl&gt;
+```
+
+---
+
+## Roadmap
+
+---
+
+class: inverse middle center
+
+### Slides created via xaringan ⚔️ &lt;http://slides.earo.me/isu18&gt;
+
+### Open source &lt;https://github.com/earowang/isu18&gt;
+
+### This work is under licensed [<i class="fab  fa-creative-commons "></i> BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/).
+    </textarea>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"ratio": "16:9",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function() {
+  var d = document, s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})();</script>
+
+<script>
+(function() {
+  var i, text, code, codes = document.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+})();
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

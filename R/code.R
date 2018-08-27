@@ -2,34 +2,18 @@
 library(lubridate)
 library(tidyverse)
 library(tsibble)
+library(forcats)
 library(sugrrants)
 # devtools::install_github("heike/ggmapr")
 library(ggmapr)
-
-## ---- theme-remark
-theme_remark <- function() {
-  theme_grey() +
-  theme(
-    axis.text = element_text(size = 14), 
-    strip.text = element_text(size = 16), 
-    axis.title = element_text(size = 16),
-    legend.title = element_text(size = 16), 
-    legend.text = element_text(size = 16),
-    legend.position = "bottom"
-  )
-}
-theme_set(theme_remark())
+source("R/theme.R")
 
 ## ---- load-data
 flights <- read_rds("data/flights.rds")
 
-## ---- map-airlines-data
+## ---- map-airlines
 origin_dest <- flights %>% 
   distinct(origin, origin_state, dest, dest_state)
-write_rds(origin_dest, path = "data/tsibble/origin_dest.rds")
-
-## ---- map-airlines
-origin_dest <- read_rds("data/tsibble/origin_dest.rds")
 airports <- read_rds("data/airports.rds")
 map_dat <- origin_dest %>% 
   left_join(airports, by = c("origin" = "faa")) %>% 
@@ -58,170 +42,126 @@ ggplot() +
     colour = "#f1a340", size  = 1.5) +
   ggthemes::theme_map()
 
+## ---- glimpse
+glimpse(flights)
+
+## ---- print
+print(flights, width = 80)
+
 ## ---- tsibble
-flights <- flights %>% 
-  as_tsibble(key = id(flight), index = sched_dep_datetime, regular = FALSE,
-    validate = FALSE)
+us_flights <- flights %>% 
+  as_tsibble(key = id(flight), index = sched_dep_datetime, regular = FALSE)
 
 ## ---- select
-flights_sel <- flights %>% 
-  select(flight, sched_dep_datetime, dep_delay)
-flights_sel
+us_flights %>% 
+  select(flight, dep_delay)
 
 ## ---- filter
-flights_fil <- flights_sel %>% 
-  filter(year(sched_dep_datetime) == 2017)
-flights_fil
+us_flights %>% 
+  filter(month(sched_dep_datetime) == 10)
 
-## ---- tsum
-flights_tsum <- flights_fil %>% 
-  tsummarise(
-    yrmth = yearmonth(sched_dep_datetime),
-    avg_delay = mean(dep_delay)
-  )
-flights_tsum
-
-## ----- n-flights-2017
-n_flights <- flights %>% 
-  filter(year(sched_dep_datetime) == 2017) %>% 
-  mutate(dep_delay_break = case_when(
-    dep_delay <= 15 ~ "ontime",
-    dep_delay <= 60 ~ "15-60 mins",
-    TRUE ~ "60+ mins"
-  )) %>% 
-  group_by(dep_delay_break) %>% 
-  tsummarise(
-    floor_date(sched_dep_datetime, unit = "hour"), 
-    n_flight = n()
-  ) %>% 
+## ----- n-flights
+dep_delay_fct <- as_factor(c("ontime", "15-60 mins", "60+mins"))
+n_flights <- us_flights %>% 
   mutate(
-    hour = hour(sched_dep_datetime),
-    date = as_date(sched_dep_datetime),
-    wday = wday(sched_dep_datetime, label = TRUE, week_start = 1)
+    dep_delay_break = case_when(
+      dep_delay <= 15 ~ dep_delay_fct[1],
+      dep_delay <= 60 ~ dep_delay_fct[2],
+      TRUE ~ dep_delay_fct[3])
+  ) %>% 
+  group_by(dep_delay_break) %>% 
+  index_by(dep_datehour = floor_date(sched_dep_datetime, unit = "hour")) %>% 
+  summarise(n_flight = n()) %>% 
+  mutate(
+    hour = hour(dep_datehour), 
+    wday = wday(dep_datehour, label = TRUE, week_start = 1),
+    date = as_date(dep_datehour)
   )
 n_flights
 
-## ---- n-flights-rds
-write_rds(as_tibble(n_flights), "data/tsibble/n_flights.rds")
-
 ## ---- delayed-facet
-n_flights <- read_rds("data/tsibble/n_flights.rds")
-avg_n_flights <- n_flights %>% 
-  group_by(dep_delay_break, wday, hour) %>% 
-  summarise(avg_n_flight = mean(n_flight, na.rm = TRUE), drop = TRUE)
-
 n_flights %>% 
-  ggplot() +
-  geom_line(aes(x = hour, y = n_flight, group = date), alpha = 0.25, size = 0.4) +
-  geom_line(
-    aes(x = hour, y = avg_n_flight, colour = dep_delay_break), 
-    data = avg_n_flights, size = 1
-  ) +
+  ggplot(aes(x = hour, y = n_flight, group = date)) +
+  geom_line(alpha = 0.25, size = 0.4) +
   facet_grid(dep_delay_break ~ wday, scales = "free_y") +
-  theme_remark() +
-  guides(colour = guide_legend(title = "Depature Delay")) +
   xlab("Time of day") +
   ylab("Number of flights") +
   scale_x_continuous(breaks = seq(6, 23, by = 6)) +
-  scale_colour_brewer(palette = "Dark2")
+  theme_remark()
 
-## ---- delay-qtl-data
-delay_qtl <- flights %>% 
-  filter(
-    year(sched_dep_datetime) == 2017,
-    hour(sched_dep_datetime) > 4
-  ) %>% 
-  tsummarise(
-    floor_date(sched_dep_datetime, unit = "hour"), 
+## ---- summarise
+hr_flights <- us_flights %>% 
+  index_by(dep_datehour = floor_date(sched_dep_datetime, unit = "hour")) %>% 
+  summarise(    
     qtl50 = quantile(dep_delay, 0.5),
     qtl80 = quantile(dep_delay, 0.8),
     qtl95 = quantile(dep_delay, 0.95)
   ) %>% 
   mutate(
-    zero = 0,
-    hour = hour(sched_dep_datetime), 
-    date = as_date(sched_dep_datetime)
+    hour = hour(dep_datehour), 
+    wday = wday(dep_datehour, label = TRUE, week_start = 1),
+    date = as_date(dep_datehour)
   )
-delay_qtl
 
-## ---- delay-qtl-data-rds
-write_rds(as_tibble(delay_qtl), "data/tsibble/delay_qtl.rds")
+hr_flights %>% 
+  filter(hour(dep_datehour) > 4) %>% 
+  ggplot(aes(x = hour, y = qtl50, group = date)) +
+  geom_hline(yintercept = 0, colour = "#9ecae1", size = 2) +
+  geom_line(alpha = 0.5) +
+  facet_wrap(~ wday) +
+  scale_x_continuous(limits = c(0, 23))
 
-## ---- delay-qtl-cal
-delay_qtl <- read_rds("data/tsibble/delay_qtl.rds")
-qtl_cal <- delay_qtl %>% 
-  frame_calendar(
-    x = hour, y = vars(qtl95, qtl80, qtl50, zero), date = date,
-  )
+hr_qtl <- hr_flights %>% 
+  gather(key = qtl, value = dep_delay, qtl50:qtl95)
 
 break_cols <- c(
-  "50%" = "#d7301f", 
-  "80%" = "#fc8d59", 
-  "95%" = "#fdcc8a"
+  "qtl95" = "#d7301f", 
+  "qtl80" = "#fc8d59", 
+  "qtl50" = "#fdcc8a"
 )
 
-p_qtl <- ggplot(qtl_cal, aes(x = .hour, group = date)) +
-  geom_ribbon(aes(ymin = .zero, ymax = .qtl95, fill = "95%")) +
-  geom_ribbon(aes(ymin = .zero, ymax = .qtl80, fill = "80%")) +
-  geom_ribbon(aes(ymin = .zero, ymax = .qtl50, fill = "50%")) +
-  scale_fill_manual(
-    name = "Departure delay",
-    values = break_cols
+qtl_label <- c(
+  "qtl50" = "50%",
+  "qtl80" = "80%", 
+  "qtl95" = "95%" 
+)
+
+hr_qtl %>% 
+  filter(hour(dep_datehour) > 4) %>% 
+  ggplot(aes(x = hour, y = dep_delay, group = date, colour = qtl)) +
+  geom_hline(yintercept = 0, colour = "#9ecae1", size = 2) +
+  geom_line(alpha = 0.5) +
+  facet_grid(
+    qtl ~ wday, scales = "free_y", 
+    labeller = labeller(qtl = as_labeller(qtl_label))
   ) +
+  xlab("Time of day") +
+  ylab("Depature delay") + 
+  scale_x_continuous(limits = c(0, 23), breaks = seq(6, 23, by = 6)) +
+  scale_colour_manual(values = break_cols, guide = FALSE) +
   theme_remark()
-prettify(p_qtl, label.padding = unit(0.12, "lines"))
 
-## ---- plotly-cal
-library(plotly)
-library(widgetframe)
-a <- list(
-  title = "",
-  zeroline = FALSE,
-  autotick = FALSE,
-  showticklabels = FALSE,
-  showline = FALSE,
-  showgrid = FALSE
-)
+carrier_delay <- us_flights %>% 
+  group_by(carrier) %>% 
+  index_by(sched_date = as_date(sched_dep_datetime)) %>% 
+  summarise(avg_delay = mean(dep_delay)) 
+carrier_delay
 
-lab_data <- attr(qtl_cal, "label")
-lab_data$label <- month.abb
-txt_data <- attr(qtl_cal, "text")
-txt_data$label <- c("M", "T", "W", "T", "F", "S", "S")
+carrier_delay %>% 
+  ggplot(aes(x = sched_date, y = avg_delay)) +
+  geom_line(size = 0.8) +
+  facet_grid(carrier ~ .) +
+  xlab("Date") +
+  ylab("Departure delay")
 
-cal_plot <- as_tibble(qtl_cal) %>%
-  group_by(date) %>%
-  plot_ly(
-    x = ~ .hour, hoverinfo = "text",
-    width = 700, height = 700
-  ) %>%
-  add_ribbons(
-    ymin = ~ .zero, ymax = ~ .qtl95, color = I("#fdcc8a"),
-    text = ~ paste(
-      "Departure delay: ", round(qtl95), "<br> Date: ", date,
-      "<br> Hour: ", hour
-    )
-  ) %>% 
-  add_ribbons(
-    ymin = ~ .zero, ymax = ~ .qtl80, color = I("#fc8d59"),
-    text = ~ paste(
-      "Departure delay: ", round(qtl80), "<br> Date: ", date,
-      "<br> Hour: ", hour
-    )
-  ) %>% 
-  add_ribbons(
-    ymin = ~ .zero, ymax = ~ .qtl50, color = I("#d7301f"),
-    text = ~ paste(
-      "Departure delay: ", round(qtl50), "<br> Date: ", date,
-      "<br> Hour: ", hour
-    )
-  ) %>% 
-  add_text(
-    x = ~ x, y = ~ y, text = ~ label, data = lab_data,
-    color = I("black")
-  ) %>%
-  add_text(
-    x = ~ x, y = ~ y - 0.03, text = ~ label, data = txt_data,
-    color = I("black")
-  )
-p <- layout(cal_plot, showlegend = FALSE, xaxis = a, yaxis = a)
-frameWidget(p)
+carrier_delay_ma <- carrier_delay %>% 
+  group_by(carrier) %>% 
+  mutate(ma_delay = slide_dbl(avg_delay, mean, .size = 7, .align = "center"))
+
+carrier_delay_ma %>% 
+  ggplot(aes(x = sched_date)) +
+  geom_line(aes(y = avg_delay), colour = "grey80", size = 0.8) +
+  geom_line(aes(y = ma_delay), colour = "#3182bd", size = 1) +
+  facet_grid(carrier ~ .) +
+  xlab("Date") +
+  ylab("Departure delay")
