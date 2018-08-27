@@ -1,0 +1,6 @@
+.DS_Store
+cache/
+*.run.xml
+.Rproj.user
+data/
+data-raw/flights
