@@ -184,6 +184,39 @@ class: inverse middle center
 ---
 
 .left-column[
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+## What makes a tsibble?
+]
+.right-column[
+.pull-left[
+<br>
+.center[
+<img src="img/tibble.png" height=180px>
+
+<i class="fas fa-arrow-down"></i>
+
+<img src="img/tsibble.png" height=180px>
+]
+]
+.pull-right[
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+tsibble leverages tibble along with time domain semantics: **index** and **key**.
+]
+]
+
+---
+
+.left-column[
 ## What makes a tsibble?
 ### - index
 ]
@@ -268,6 +301,10 @@ tidyverse::tidyverse_logo()
 
 ---
 
+Stay tight with tidyverse verbs, only introduce necessary new verbs.
+
+---
+
 .left-column[
 ## Verbs
 ### - filter
@@ -285,8 +322,12 @@ tidyverse::tidyverse_logo()
 ### - select
 ]
 .right-column[
+Keep the index hang around with the tsibble
+
 ```{r select, echo = TRUE}
 ```
+
+OR *consciously* leave off the time context by using `.drop = TRUE` or `as_tibble()`.
 ]
 
 ---
@@ -298,8 +339,16 @@ tidyverse::tidyverse_logo()
 ### - summarise
 ]
 .right-column[
+Aggregate over time
 ```{r summarise, echo = TRUE}
 ```
+Utilize the context and reduce typing, compared to:
+```r
+flights %>% 
+  group_by(sched_dep_datetime) %>% 
+  summarise(avg_delay = mean(dep_delay))
+```
+
 ]
 
 ---
@@ -309,18 +358,22 @@ tidyverse::tidyverse_logo()
 ### - filter
 ### - select
 ### - summarise
-### - index_by
+### - index_by*
 ]
 .right-column[
 ```{r index-by, echo = TRUE}
 ```
 * `year()` for yearly aggregation, `yearquarter()` for quarterly, `yearmonth()` for monthly, `yearweek()` for weekly
-* a few lubridate friends
+* many other lubridate friends
 ]
 
 ---
 
-## Pipeline
+## Glue individual blocks to compose a pipeline
+
+---
+
+## Upper-tail departure delay performance
 
 ```{r quantile, echo = TRUE}
 ```
@@ -332,7 +385,86 @@ tidyverse::tidyverse_logo()
 
 ---
 
-## Pipeline
+.block[
+.flowchart[
+* `index_by() + summarise()` <br> aggregate to hourly data
+]
+]
+
+```r
+us_flights %>% 
+* index_by(dep_datehour = floor_date(sched_dep_datetime, unit = "hour")) %>% 
+* summarise(    
+*   qtl50 = quantile(dep_delay, 0.5),
+*   qtl80 = quantile(dep_delay, 0.8),
+*   qtl95 = quantile(dep_delay, 0.95)
+* )
+```
+
+
+```{r qtl1}
+```
+
+---
+
+.block[
+.flowchart[
+* `index_by() + summarise()` <br> aggregate to hourly data
+* `mutate()` <br> create new variables
+]
+]
+
+```r
+us_flights %>% 
+  index_by(dep_datehour = floor_date(sched_dep_datetime, unit = "hour")) %>% 
+  summarise(    
+    qtl50 = quantile(dep_delay, 0.5),
+    qtl80 = quantile(dep_delay, 0.8),
+    qtl95 = quantile(dep_delay, 0.95)
+  ) %>% 
+* mutate(
+*   hour = hour(dep_datehour), 
+*   wday = wday(dep_datehour, label = TRUE, week_start = 1),
+*   date = as_date(dep_datehour)
+* )
+```
+
+```{r qtl2}
+```
+
+---
+
+.block[
+.flowchart[
+* `index_by() + summarise()` <br> aggregate to hourly data
+* `mutate()` <br> create new variables
+* `gather()` <br> melt to long form
+]
+]
+
+```r
+us_flights %>% 
+  index_by(dep_datehour = floor_date(sched_dep_datetime, unit = "hour")) %>% 
+  summarise(    
+    qtl50 = quantile(dep_delay, 0.5),
+    qtl80 = quantile(dep_delay, 0.8),
+    qtl95 = quantile(dep_delay, 0.95)
+  ) %>% 
+  mutate(
+    hour = hour(dep_datehour), 
+    wday = wday(dep_datehour, label = TRUE, week_start = 1),
+    date = as_date(dep_datehour)
+  ) %>% 
+* gather(key = qtl, value = dep_delay, qtl50:qtl95)
+```
+
+
+```{r qtl3}
+```
+
+---
+
+## Daily average departure delay by carriers
 
 ```{r carrier, echo = TRUE}
 ```
@@ -344,6 +476,10 @@ tidyverse::tidyverse_logo()
 
 ---
 
+A suite of window functions
+
+---
+
 ## Roadmap
 
 ---
@@ -351,6 +487,8 @@ tidyverse::tidyverse_logo()
 class: inverse middle center
 
 ### Slides created via xaringan `r emo::ji("crossed_swords")` <http://slides.earo.me/isu18>
+
+### More about tsibble <http://pkg.earo.me/tsibble>
 
 ### Open source <https://github.com/earowang/isu18>
 

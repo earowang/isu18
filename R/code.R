@@ -121,6 +121,44 @@ hr_qtl <- us_flights %>%
   ) %>% 
   gather(key = qtl, value = dep_delay, qtl50:qtl95)
 
+## ---- qtl1
+us_flights %>% 
+  index_by(dep_datehour = floor_date(sched_dep_datetime, unit = "hour")) %>% 
+  summarise(    
+    qtl50 = quantile(dep_delay, 0.5),
+    qtl80 = quantile(dep_delay, 0.8),
+    qtl95 = quantile(dep_delay, 0.95)
+  )
+
+## ---- qtl2
+us_flights %>% 
+  index_by(dep_datehour = floor_date(sched_dep_datetime, unit = "hour")) %>% 
+  summarise(    
+    qtl50 = quantile(dep_delay, 0.5),
+    qtl80 = quantile(dep_delay, 0.8),
+    qtl95 = quantile(dep_delay, 0.95)
+  ) %>% 
+  mutate(
+    hour = hour(dep_datehour), 
+    wday = wday(dep_datehour, label = TRUE, week_start = 1),
+    date = as_date(dep_datehour)
+  )
+
+## ---- qtl3
+us_flights %>% 
+  index_by(dep_datehour = floor_date(sched_dep_datetime, unit = "hour")) %>% 
+  summarise(    
+    qtl50 = quantile(dep_delay, 0.5),
+    qtl80 = quantile(dep_delay, 0.8),
+    qtl95 = quantile(dep_delay, 0.95)
+  ) %>% 
+  mutate(
+    hour = hour(dep_datehour), 
+    wday = wday(dep_datehour, label = TRUE, week_start = 1),
+    date = as_date(dep_datehour)
+  ) %>% 
+  gather(key = qtl, value = dep_delay, qtl50:qtl95)
+
 ## ---- draw-qtl
 break_cols <- c(
   "qtl95" = "#d7301f", 

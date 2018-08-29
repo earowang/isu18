@@ -226,6 +226,39 @@ class: inverse middle center
 ---
 
 .left-column[
+&lt;br&gt;
+&lt;br&gt;
+&lt;br&gt;
+&lt;br&gt;
+&lt;br&gt;
+&lt;br&gt;
+## What makes a tsibble?
+]
+.right-column[
+.pull-left[
+&lt;br&gt;
+.center[
+&lt;img src="img/tibble.png" height=180px&gt;
+
+&lt;i class="fas fa-arrow-down"&gt;&lt;/i&gt;
+
+&lt;img src="img/tsibble.png" height=180px&gt;
+]
+]
+.pull-right[
+&lt;br&gt;
+&lt;br&gt;
+&lt;br&gt;
+&lt;br&gt;
+&lt;br&gt;
+&lt;br&gt;
+tsibble leverages tibble along with time domain semantics: **index** and **key**.
+]
+]
+
+---
+
+.left-column[
 ## What makes a tsibble?
 ### - index
 ]
@@ -360,6 +393,10 @@ class: inverse middle center
 
 ---
 
+Stay tight with tidyverse verbs, only introduce necessary new verbs.
+
+---
+
 .left-column[
 ## Verbs
 ### - filter
@@ -402,6 +439,8 @@ us_flights %&gt;%
 ### - select
 ]
 .right-column[
+Keep the index hang around with the tsibble
+
 
 ```r
 us_flights %&gt;% 
@@ -421,6 +460,8 @@ us_flights %&gt;%
 #&gt; 6 AA1           -3 2017-01-06 08:00:00
 #&gt; # ... with 5.548e+06 more rows
 ```
+
+OR *consciously* leave off the time context by using `.drop = TRUE` or `as_tibble()`.
 ]
 
 ---
@@ -432,6 +473,7 @@ us_flights %&gt;%
 ### - summarise
 ]
 .right-column[
+Aggregate over time
 
 ```r
 us_flights %&gt;% 
@@ -450,6 +492,13 @@ us_flights %&gt;%
 #&gt; 6 2017-01-01 00:35:00     -4.5 
 #&gt; # ... with 3.93e+05 more rows
 ```
+Utilize the context and reduce typing, compared to:
+```r
+flights %&gt;% 
+  group_by(sched_dep_datetime) %&gt;% 
+  summarise(avg_delay = mean(dep_delay))
+```
+
 ]
 
 ---
@@ -459,7 +508,7 @@ us_flights %&gt;%
 ### - filter
 ### - select
 ### - summarise
-### - index_by
+### - index_by*
 ]
 .right-column[
 
@@ -484,12 +533,16 @@ us_flights %&gt;%
 #&gt; # ... with 7,998 more rows
 ```
 * `year()` for yearly aggregation, `yearquarter()` for quarterly, `yearmonth()` for monthly, `yearweek()` for weekly
-* a few lubridate friends
+* many other lubridate friends
 ]
 
 ---
 
-## Pipeline
+## Glue individual blocks to compose a pipeline
+
+---
+
+## Upper-tail departure delay performance
 
 
 ```r
@@ -514,7 +567,121 @@ hr_qtl &lt;- us_flights %&gt;%
 
 ---
 
-## Pipeline
+.block[
+.flowchart[
+* `index_by() + summarise()` &lt;br&gt; aggregate to hourly data
+]
+]
+
+```r
+us_flights %&gt;% 
+* index_by(dep_datehour = floor_date(sched_dep_datetime, unit = "hour")) %&gt;% 
+* summarise(    
+*   qtl50 = quantile(dep_delay, 0.5),
+*   qtl80 = quantile(dep_delay, 0.8),
+*   qtl95 = quantile(dep_delay, 0.95)
+* )
+```
+
+
+
+```
+#&gt; # A tsibble: 8,004 x 4 [1h]
+#&gt;   dep_datehour        qtl50 qtl80 qtl95
+#&gt;   &lt;dttm&gt;              &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1 2017-01-01 00:00:00  -3.5   2.6  17.5
+#&gt; 2 2017-01-01 01:00:00  -2    28.4 111. 
+#&gt; 3 2017-01-01 02:00:00  -7    21.6  23.4
+#&gt; 4 2017-01-01 05:00:00  -2     3    29.1
+#&gt; 5 2017-01-01 06:00:00  -3     2.2  39.8
+#&gt; 6 2017-01-01 07:00:00  -2     5    51  
+#&gt; # ... with 7,998 more rows
+```
+
+---
+
+.block[
+.flowchart[
+* `index_by() + summarise()` &lt;br&gt; aggregate to hourly data
+* `mutate()` &lt;br&gt; create new variables
+]
+]
+
+```r
+us_flights %&gt;% 
+  index_by(dep_datehour = floor_date(sched_dep_datetime, unit = "hour")) %&gt;% 
+  summarise(    
+    qtl50 = quantile(dep_delay, 0.5),
+    qtl80 = quantile(dep_delay, 0.8),
+    qtl95 = quantile(dep_delay, 0.95)
+  ) %&gt;% 
+* mutate(
+*   hour = hour(dep_datehour), 
+*   wday = wday(dep_datehour, label = TRUE, week_start = 1),
+*   date = as_date(dep_datehour)
+* )
+```
+
+
+```
+#&gt; # A tsibble: 8,004 x 7 [1h]
+#&gt;   dep_datehour        qtl50 qtl80 qtl95  hour wday 
+#&gt;   &lt;dttm&gt;              &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt; &lt;ord&gt;
+#&gt; 1 2017-01-01 00:00:00  -3.5   2.6  17.5     0 Sun  
+#&gt; 2 2017-01-01 01:00:00  -2    28.4 111.      1 Sun  
+#&gt; 3 2017-01-01 02:00:00  -7    21.6  23.4     2 Sun  
+#&gt; 4 2017-01-01 05:00:00  -2     3    29.1     5 Sun  
+#&gt; 5 2017-01-01 06:00:00  -3     2.2  39.8     6 Sun  
+#&gt; 6 2017-01-01 07:00:00  -2     5    51       7 Sun  
+#&gt; # ... with 7,998 more rows, and 1 more variable:
+#&gt; #   date &lt;date&gt;
+```
+
+---
+
+.block[
+.flowchart[
+* `index_by() + summarise()` &lt;br&gt; aggregate to hourly data
+* `mutate()` &lt;br&gt; create new variables
+* `gather()` &lt;br&gt; melt to long form
+]
+]
+
+```r
+us_flights %&gt;% 
+  index_by(dep_datehour = floor_date(sched_dep_datetime, unit = "hour")) %&gt;% 
+  summarise(    
+    qtl50 = quantile(dep_delay, 0.5),
+    qtl80 = quantile(dep_delay, 0.8),
+    qtl95 = quantile(dep_delay, 0.95)
+  ) %&gt;% 
+  mutate(
+    hour = hour(dep_datehour), 
+    wday = wday(dep_datehour, label = TRUE, week_start = 1),
+    date = as_date(dep_datehour)
+  ) %&gt;% 
+* gather(key = qtl, value = dep_delay, qtl50:qtl95)
+```
+
+
+
+```
+#&gt; # A tsibble: 24,012 x 6 [1h]
+#&gt; # Key:       qtl [3]
+#&gt;   dep_datehour         hour wday  date       qtl   dep_delay
+#&gt;   &lt;dttm&gt;              &lt;int&gt; &lt;ord&gt; &lt;date&gt;     &lt;chr&gt;     &lt;dbl&gt;
+#&gt; 1 2017-01-01 00:00:00     0 Sun   2017-01-01 qtl50      -3.5
+#&gt; 2 2017-01-01 01:00:00     1 Sun   2017-01-01 qtl50      -2  
+#&gt; 3 2017-01-01 02:00:00     2 Sun   2017-01-01 qtl50      -7  
+#&gt; 4 2017-01-01 05:00:00     5 Sun   2017-01-01 qtl50      -2  
+#&gt; 5 2017-01-01 06:00:00     6 Sun   2017-01-01 qtl50      -3  
+#&gt; 6 2017-01-01 07:00:00     7 Sun   2017-01-01 qtl50      -2  
+#&gt; # ... with 2.401e+04 more rows
+```
+
+---
+
+## Daily average departure delay by carriers
 
 
 ```r
@@ -545,6 +712,10 @@ carrier_delay
 
 ---
 
+A suite of window functions
+
+---
+
 ## Roadmap
 
 ---
@@ -552,6 +723,8 @@ carrier_delay
 class: inverse middle center
 
 ### Slides created via xaringan ⚔️ &lt;http://slides.earo.me/isu18&gt;
+
+### More about tsibble &lt;http://pkg.earo.me/tsibble&gt;
 
 ### Open source &lt;https://github.com/earowang/isu18&gt;
 

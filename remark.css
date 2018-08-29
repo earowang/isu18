@@ -59,6 +59,33 @@ ul li li:before {
   color: #31a354;
   font-weight: 900;
 }
+.block {
+	display: table;   /* Allow the centering to work */
+	margin: 0 auto;
+}
+.flowchart li {
+  margin: 12px 20px 0 0;
+  max-width: 345px;
+  padding: 5px;
+  float: left;
+  text-align: center;
+  line-height: 1.2em;
+  border-radius: 12px;
+  background-color: #f7f7f7;
+  font-size: 24px;
+  /* overflow-wrap: break-word; */
+  /* word-wrap: break-word; */
+  /* hyphens: auto; */
+}
+.flowchart li:last-child {
+  background-color: #fee8c8;
+}
+.flowchart ul li {
+  display: inline;
+}
+.flowchart ul li:before {
+  content: none;
+}
 
 .red { color: #D00000; }
 .orange { color: #FFBA08; }
