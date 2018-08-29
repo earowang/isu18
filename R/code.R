@@ -50,15 +50,33 @@ print(flights, width = 80)
 
 ## ---- tsibble
 us_flights <- flights %>% 
-  as_tsibble(key = id(flight), index = sched_dep_datetime, regular = FALSE)
+  as_tsibble(
+    index = sched_dep_datetime,
+    key = id(flight), 
+    regular = FALSE
+  )
+
+## ---- print-tsibble
+us_flights
+
+## ---- filter
+us_flights %>% 
+  filter(month(sched_dep_datetime) == 10)
 
 ## ---- select
 us_flights %>% 
   select(flight, dep_delay)
 
-## ---- filter
+## ---- summarise
 us_flights %>% 
-  filter(month(sched_dep_datetime) == 10)
+  summarise(avg_delay = mean(dep_delay))
+
+## ---- index-by
+us_flights %>% 
+  index_by(
+    dep_datehour = floor_date(sched_dep_datetime, unit = "hour")
+  ) %>% 
+  summarise(avg_delay = mean(dep_delay))
 
 ## ----- n-flights
 dep_delay_fct <- as_factor(c("ontime", "15-60 mins", "60+mins"))
@@ -77,7 +95,6 @@ n_flights <- us_flights %>%
     wday = wday(dep_datehour, label = TRUE, week_start = 1),
     date = as_date(dep_datehour)
   )
-n_flights
 
 ## ---- delayed-facet
 n_flights %>% 
@@ -89,8 +106,8 @@ n_flights %>%
   scale_x_continuous(breaks = seq(6, 23, by = 6)) +
   theme_remark()
 
-## ---- summarise
-hr_flights <- us_flights %>% 
+## ---- quantile
+hr_qtl <- us_flights %>% 
   index_by(dep_datehour = floor_date(sched_dep_datetime, unit = "hour")) %>% 
   summarise(    
     qtl50 = quantile(dep_delay, 0.5),
@@ -101,19 +118,10 @@ hr_flights <- us_flights %>%
     hour = hour(dep_datehour), 
     wday = wday(dep_datehour, label = TRUE, week_start = 1),
     date = as_date(dep_datehour)
-  )
-
-hr_flights %>% 
-  filter(hour(dep_datehour) > 4) %>% 
-  ggplot(aes(x = hour, y = qtl50, group = date)) +
-  geom_hline(yintercept = 0, colour = "#9ecae1", size = 2) +
-  geom_line(alpha = 0.5) +
-  facet_wrap(~ wday) +
-  scale_x_continuous(limits = c(0, 23))
-
-hr_qtl <- hr_flights %>% 
+  ) %>% 
   gather(key = qtl, value = dep_delay, qtl50:qtl95)
 
+## ---- draw-qtl
 break_cols <- c(
   "qtl95" = "#d7301f", 
   "qtl80" = "#fc8d59", 
@@ -141,12 +149,14 @@ hr_qtl %>%
   scale_colour_manual(values = break_cols, guide = FALSE) +
   theme_remark()
 
+## ---- carrier
 carrier_delay <- us_flights %>% 
   group_by(carrier) %>% 
   index_by(sched_date = as_date(sched_dep_datetime)) %>% 
   summarise(avg_delay = mean(dep_delay)) 
 carrier_delay
 
+## ---- carrier-plot
 carrier_delay %>% 
   ggplot(aes(x = sched_date, y = avg_delay)) +
   geom_line(size = 0.8) +
@@ -154,6 +164,7 @@ carrier_delay %>%
   xlab("Date") +
   ylab("Departure delay")
 
+## ----- carrier-ma
 carrier_delay_ma <- carrier_delay %>% 
   group_by(carrier) %>% 
   mutate(ma_delay = slide_dbl(avg_delay, mean, .size = 7, .align = "center"))
