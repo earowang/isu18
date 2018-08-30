@@ -3,7 +3,7 @@
   <head>
     <title>Tidy your time series analysis   with tsibble</title>
     <meta charset="utf-8">
-    <meta name="author" content="Earo Wang" />
+    <meta name="author" content="  Earo Wang" />
     <link href="index_files/remark-css/default.css" rel="stylesheet" />
     <link href="index_files/font-awesome/css/fontawesome-all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="remark.css" type="text/css" />
@@ -13,7 +13,7 @@
 class: center, middle, inverse, title-slide
 
 # Tidy your time series analysis <br> with tsibble
-### Earo Wang
+### <br> Earo Wang
 ### 31 August 2018 <br> slides at <a href="http://slides.earo.me/isu18" class="uri">http://slides.earo.me/isu18</a>
 
 ---
@@ -391,7 +391,7 @@ class: inverse middle center
 ```
 ]
 
----
+???
 
 Stay tight with tidyverse verbs, only introduce necessary new verbs.
 
@@ -538,7 +538,12 @@ us_flights %&gt;%
 
 ---
 
-## Glue individual blocks to compose a pipeline
+class: middle center inverse
+
+background-image: url(img/lego.jpg)
+background: cover
+
+## .bg-col[Glue individual blocks &lt;br&gt; to compose a pipeline]
 
 ---
 
@@ -712,11 +717,99 @@ carrier_delay
 
 ---
 
-A suite of window functions
+## Moving averages
+
+
+```r
+carrier_delay_ma &lt;- carrier_delay %&gt;% 
+  group_by(carrier) %&gt;% 
+  mutate(ma_delay = slide_dbl(avg_delay, mean, .size = 7, .align = "center"))
+carrier_delay_ma
+```
+
+```
+#&gt; # A tsibble: 4,380 x 4 [1D]
+#&gt; # Key:       carrier [12]
+#&gt; # Groups:    carrier [12]
+#&gt;   carrier sched_date avg_delay ma_delay
+#&gt;   &lt;chr&gt;   &lt;date&gt;         &lt;dbl&gt;    &lt;dbl&gt;
+#&gt; 1 AA      2017-01-01     13.5      NA  
+#&gt; 2 AA      2017-01-02     16.1      NA  
+#&gt; 3 AA      2017-01-03     10.3      NA  
+#&gt; 4 AA      2017-01-04      8.62     14.6
+#&gt; 5 AA      2017-01-05     11.4      15.7
+#&gt; 6 AA      2017-01-06     13.3      15.3
+#&gt; # ... with 4,374 more rows
+```
 
 ---
 
-## Roadmap
+&lt;img src="figure/carrier-ma-plot-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+
+## A suite of window functions
+
+.pull-left[
+* `slide()`/`slide2()`/`pslide()`: sliding window with overlapping observations
+]
+
+.pull-right[
+![](img/slide.gif)
+]
+
+---
+
+## A suite of window functions
+
+.pull-left[
+* `slide()`/`slide2()`/`pslide()`: sliding window with overlapping observations
+
+
+* `tile()`/`tile2()`/`ptile()`: tiling window without overlapping observations
+]
+
+.pull-right[
+![](img/slide.gif)
+![](img/tile.gif)
+]
+
+---
+
+## A suite of window functions
+
+.pull-left[
+* `slide()`/`slide2()`/`pslide()`: sliding window with overlapping observations
+
+
+* `tile()`/`tile2()`/`ptile()`: tiling window without overlapping observations
+  
+
+* `stretch()`/`stretch2()`/`pstretch()`: fixing an initial window and expanding to include more observations
+]
+
+.pull-right[
+![](img/slide.gif)
+![](img/tile.gif)
+![](img/stretch.gif)
+]
+
+&lt;hr&gt;
+
+Type-stable: `slide()`/`tile()`/`stretch()` (a list) <i class="fas  fa-plus "></i> other variants: `*_dbl()`, `*_int()`, `*_lgl()`, `*_chr()`
+
+---
+
+class: inverse middle center
+
+## One more thing ...
+
+---
+
+background-image: url(img/tidyverts.png)
+background-size: 65%
+
+## tidyverts.org
 
 ---
 

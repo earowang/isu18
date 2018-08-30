@@ -1,7 +1,7 @@
 ---
 title: "Tidy your time series analysis <br> with tsibble"
 type: "seminar"
-author: "Earo Wang"
+author: "<br> Earo Wang"
 date: "31 August 2018 <br> slides at <http://slides.earo.me/isu18>"
 output:
   xaringan::moon_reader:
@@ -299,7 +299,7 @@ tidyverse::tidyverse_logo()
 ```
 ]
 
----
+???
 
 Stay tight with tidyverse verbs, only introduce necessary new verbs.
 
@@ -369,7 +369,12 @@ flights %>%
 
 ---
 
-## Glue individual blocks to compose a pipeline
+class: middle center inverse
+
+background-image: url(img/lego.jpg)
+background: cover
+
+## .bg-col[Glue individual blocks <br> to compose a pipeline]
 
 ---
 
@@ -476,11 +481,80 @@ us_flights %>%
 
 ---
 
-A suite of window functions
+## Moving averages
+
+```{r carrier-ma, echo = TRUE}
+```
 
 ---
 
-## Roadmap
+```{r carrier-ma-plot, fig.height = 7}
+```
+
+---
+
+## A suite of window functions
+
+.pull-left[
+* `slide()`/`slide2()`/`pslide()`: sliding window with overlapping observations
+]
+
+.pull-right[
+![](img/slide.gif)
+]
+
+---
+
+## A suite of window functions
+
+.pull-left[
+* `slide()`/`slide2()`/`pslide()`: sliding window with overlapping observations
+
+
+* `tile()`/`tile2()`/`ptile()`: tiling window without overlapping observations
+]
+
+.pull-right[
+![](img/slide.gif)
+![](img/tile.gif)
+]
+
+---
+
+## A suite of window functions
+
+.pull-left[
+* `slide()`/`slide2()`/`pslide()`: sliding window with overlapping observations
+
+
+* `tile()`/`tile2()`/`ptile()`: tiling window without overlapping observations
+  
+
+* `stretch()`/`stretch2()`/`pstretch()`: fixing an initial window and expanding to include more observations
+]
+
+.pull-right[
+![](img/slide.gif)
+![](img/tile.gif)
+![](img/stretch.gif)
+]
+
+<hr>
+
+Type-stable: `slide()`/`tile()`/`stretch()` (a list) `r icon::fa_plus()` other variants: `*_dbl()`, `*_int()`, `*_lgl()`, `*_chr()`
+
+---
+
+class: inverse middle center
+
+## One more thing ...
+
+---
+
+background-image: url(img/tidyverts.png)
+background-size: 65%
+
+## tidyverts.org
 
 ---
 

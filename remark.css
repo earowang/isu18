@@ -86,6 +86,10 @@ ul li li:before {
 .flowchart ul li:before {
   content: none;
 }
+.bg-col{
+  display: inline-flex;
+  background-color: #998ec3;
+}
 
 .red { color: #D00000; }
 .orange { color: #FFBA08; }

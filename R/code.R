@@ -206,7 +206,9 @@ carrier_delay %>%
 carrier_delay_ma <- carrier_delay %>% 
   group_by(carrier) %>% 
   mutate(ma_delay = slide_dbl(avg_delay, mean, .size = 7, .align = "center"))
+carrier_delay_ma
 
+## ----- carrier-ma-plot
 carrier_delay_ma %>% 
   ggplot(aes(x = sched_date)) +
   geom_line(aes(y = avg_delay), colour = "grey80", size = 0.8) +
